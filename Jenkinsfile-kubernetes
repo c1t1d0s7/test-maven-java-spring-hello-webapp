@@ -75,6 +75,8 @@ spec:
         githubURL = "https://github.com/${githubId}/${githubRepo}.git"
         dockerhubId = 'c1t1d0s7'
         dockerhubRepo = 'hello-world'
+      }
+      steps {
         container('git') {
           git branch: 'main', credentialsId: 'github-credential', url: "${githubURL}"
           sh "git config --global --add safe.directory ${workspace}"
