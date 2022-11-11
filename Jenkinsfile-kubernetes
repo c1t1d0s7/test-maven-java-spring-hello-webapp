@@ -12,6 +12,12 @@ spec:
     - sleep
     args:
     - infinity
+  - name: git
+    image: alpine/git
+    command:
+    - sleep
+    args:
+    - infinity
   - name: kaniko
     image: gcr.io/kaniko-project/executor:debug
     command:
@@ -57,6 +63,29 @@ spec:
       steps {
         container('kaniko') {
           sh 'executor --context=dir://$WORKSPACE --destination=c1t1d0s7/hello-world:$BUILD_NUMBER --destination=c1t1d0s7/hello-world:latest'
+        }
+      }
+    }
+    stage('Update K8s Manifests & Push') {
+      environment {
+        githubUser = 'Jang Seonggyun'
+        githubEmail = 'c1t1d0s7@gmail.com'
+        githubId = 'c1t1d0s7'
+        githubRepo = 'deploy-kube-object'
+        githubURL = "https://github.com/${githubId}/${githubRepo}.git"
+        dockerhubId = 'c1t1d0s7'
+        dockerhubRepo = 'hello-world'
+        container('git') {
+          git branch: 'main', credentialsId: 'github-credential', url: "${githubURL}"
+          sh "git config --global --add safe.directory ${workspace}"
+          sh "git config --global user.name ${githubUser}"
+          sh "git config --global user.email ${githubEmail}"
+          sh 'sed -i "s/image:.*/image: ${dockerhubId}\\/${dockerhubRepo}:${BUILD_NUMBER}/g" deployment.yaml'
+          sh 'git add deployment.yaml'
+          sh 'git commit -m "Jenkins Build Number - ${BUILD_NUMBER}"'
+          withCredentials([gitUsernamePassword(credentialsId: 'github-credential', gitToolName: 'Default')]) {
+            sh 'git push --set-upstream origin main'
+          }
         }
       }
     }
