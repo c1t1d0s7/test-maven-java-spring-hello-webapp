@@ -1,0 +1,24 @@
+---
+- name: Install Web Server
+  hosts: webservers
+  gather_facts: false
+  become: true
+  vars:
+    service_port: 8088
+  tasks:
+  #- debug:
+  #    msg: "{{ ansible_distribution }}"
+  - name: Install Apache2 Package
+    apt:
+      name: apache2
+      state: present
+  - name: Change Service Port
+    template:
+      src: ports.conf.tmpl
+      dest: /etc/apache2/ports.conf
+    notify: Start Apache2 Service
+  handlers:
+  - name: Start Apache2 Service
+    service:
+      name: apache2
+      state: restarted
