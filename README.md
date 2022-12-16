@@ -1,4 +1,4 @@
-# Example Hello Webapp for JAVA Language with Maven/Spring
+# Example Hello Webapp for JAVA Language with Maven/Spring = test
 
 ## WAR Packaging
 
