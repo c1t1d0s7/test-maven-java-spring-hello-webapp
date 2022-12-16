@@ -21,6 +21,12 @@ spec:
     volumeMounts:
     - name: registry-credentials
       mountPath: /kaniko/.docker
+  - name: git
+    image: alpine/git
+    command:
+    - sleep
+    args:
+    - infinity
   volumes:
   - name: registry-credentials
     secret:
@@ -57,6 +63,31 @@ spec:
       steps {
         container('kaniko') {
           sh 'executor --context=dir://$WORKSPACE --destination=docker.io/c1t1d0s7/hello-world:$BUILD_NUMBER --destination=docker.io/c1t1d0s7/hello-world:latest'
+        }
+      }
+    }
+    stage('Update K8s Manifests & Push') {
+      environment {
+        githubUser = 'Ryan Jang' //Ryan Jang
+        githubEmail = 'c1t1d0s7@gmail.com' //c1t1d0s7@example.com
+        githubId = 'c1t1d0s7' //c1t1d0s7 
+        githubRepo = 'jenkins-kube-repo' //jenkins-kube-deploy
+        githubURL = "https://github.com/${githubId}/${githubRepo}.git"
+        dockerhubId = 'c1t1d0s7' //c1t1d0s7
+        dockerhubRepo = 'hello-world' //hello-world
+      }
+      steps {
+        container('git') {
+          git branch: 'main', credentialsId: 'github-credential', url: "${githubURL}"
+          sh "git config --global --add safe.directory ${workspace}"
+          sh "git config --global user.name ${githubUser}"
+          sh "git config --global user.email ${githubEmail}"
+          sh 'sed -i "s/image:.*/image: ${dockerhubId}\\/${dockerhubRepo}:${BUILD_NUMBER}/g" deployment.yaml'
+          sh 'git add deployment.yaml'
+          sh 'git commit -m "Jenkins Build Number - ${BUILD_NUMBER}"'
+          withCredentials([gitUsernamePassword(credentialsId: 'github-credential', gitToolName: 'Default')]) {
+            sh 'git push --set-upstream origin main'
+          }
         }
       }
     }
